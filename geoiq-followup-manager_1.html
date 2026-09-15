@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoIQ Follow-up Manager</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{
+    --ink:#1B2430;
+    --bg:#F1F3F6;
+    --surface:#FFFFFF;
+    --border:#E1E4EA;
+    --border-strong:#CBD1DC;
+    --muted:#6B7280;
+    --muted-2:#94A0B4;
+    --primary:#1F5F5A;
+    --primary-dark:#154441;
+    --primary-tint:#E6EEED;
+    --amber:#B9740A;
+    --amber-tint:#FBF0DE;
+    --red:#B23A2E;
+    --red-tint:#FAE7E4;
+    --green:#2F7D4F;
+    --green-tint:#E6F2EA;
+    --blue:#2A5FA5;
+    --blue-tint:#E7EEF7;
+    --slate:#55627A;
+    --slate-tint:#EBEDF1;
+    --radius:8px;
+    --shadow-sm:0 1px 2px rgba(20,24,32,0.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    font-size:14px;
+    line-height:1.45;
+  }
+  ::selection{background:#CFE3E0;}
+  button{font-family:inherit;}
+  a{color:var(--primary);}
+  input,select,textarea{
+    font-family:inherit;
+    font-size:13.5px;
+    color:var(--ink);
+    background:var(--surface);
+    border:1px solid var(--border-strong);
+    border-radius:6px;
+    padding:7px 10px;
+    outline:none;
+  }
+  input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-tint);}
+  textarea{resize:vertical;font-family:inherit;}
+
+  /* ---- App shell ---- */
+  .app{display:flex;min-height:100vh;}
+  .sidebar{
+    width:222px;flex:none;
+    background:var(--primary-dark);
+    color:#EAF2F1;
+    display:flex;flex-direction:column;
+    padding:20px 14px;
+    position:sticky;top:0;height:100vh;
+  }
+  .brand{padding:2px 8px 20px;}
+  .brand-name{font-size:15.5px;font-weight:700;letter-spacing:0.2px;color:#fff;}
+  .brand-sub{font-size:11.5px;color:#9FC1BC;margin-top:3px;}
+  .nav{display:flex;flex-direction:column;gap:2px;margin-top:6px;}
+  .nav-item{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:9px 10px;border-radius:7px;color:#CFE3E0;
+    cursor:pointer;font-size:13.5px;font-weight:500;
+    transition:background .12s;
+  }
+  .nav-item:hover{background:rgba(255,255,255,0.06);}
+  .nav-item.active{background:rgba(255,255,255,0.13);color:#fff;}
+  .nav-badge{
+    background:rgba(255,255,255,0.14);color:#fff;font-size:11px;font-weight:700;
+    padding:1px 7px;border-radius:20px;min-width:18px;text-align:center;
+  }
+  .nav-badge.hot{background:var(--red);}
+  .sidebar-foot{margin-top:auto;padding:10px 8px 2px;font-size:11px;color:#7FA6A0;line-height:1.5;border-top:1px solid rgba(255,255,255,0.08);padding-top:14px;}
+
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .topbar{
+    display:flex;align-items:center;gap:12px;
+    padding:14px 26px;background:var(--surface);border-bottom:1px solid var(--border);
+    position:sticky;top:0;z-index:5;
+  }
+  .search-wrap{position:relative;flex:1;max-width:420px;}
+  .search-wrap input{width:100%;padding-left:32px;}
+  .search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted-2);}
+  .topbar-actions{display:flex;gap:8px;margin-left:auto;}
+  .content{padding:24px 26px 60px;max-width:1300px;width:100%;margin:0 auto;}
+
+  h1{font-size:20px;margin:0 0 4px;font-weight:700;}
+  h2{font-size:15.5px;margin:0 0 2px;font-weight:700;}
+  .page-sub{color:var(--muted);font-size:13px;margin:0 0 18px;}
+
+  /* ---- buttons ---- */
+  .btn{
+    display:inline-flex;align-items:center;gap:6px;
+    border:1px solid var(--border-strong);background:var(--surface);color:var(--ink);
+    padding:7px 13px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;
+    transition:background .12s,border-color .12s;white-space:nowrap;
+  }
+  .btn:hover{background:#F5F6F8;}
+  .btn-primary{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .btn-primary:hover{background:var(--primary-dark);}
+  .btn-danger{color:var(--red);border-color:#E9C7C2;}
+  .btn-danger:hover{background:var(--red-tint);}
+  .btn-ghost{border-color:transparent;background:transparent;}
+  .btn-ghost:hover{background:#EEF0F3;}
+  .btn-sm{padding:4px 9px;font-size:12px;border-radius:6px;}
+  .btn:disabled{opacity:0.45;cursor:not-allowed;}
+
+  /* ---- cards / metrics ---- */
+  .metric-row{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:22px;}
+  .metric-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:14px 14px 12px;cursor:pointer;transition:border-color .12s,transform .1s;
+  }
+  .metric-card:hover{border-color:var(--border-strong);}
+  .metric-card .num{font-size:24px;font-weight:700;line-height:1.1;}
+  .metric-card .label{font-size:12px;color:var(--muted);margin-top:4px;font-weight:600;}
+  .metric-card.active .num{color:var(--ink);}
+  .metric-card.due .num{color:var(--amber);}
+  .metric-card.overdue .num{color:var(--red);}
+  .metric-card.waiting .num{color:var(--blue);}
+  .metric-card.parked .num{color:var(--slate);}
+  .metric-card.won .num{color:var(--green);}
+  .metric-card.lost .num{color:var(--muted-2);}
+
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:20px;}
+  .panel-head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);}
+  .panel-body{padding:14px 16px;}
+  .panel-body.pad0{padding:0;}
+
+  /* ---- attention list ---- */
+  .attn-item{
+    display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);
+    cursor:pointer;
+  }
+  .attn-item:last-child{border-bottom:none;}
+  .attn-item:hover{background:#FAFBFC;}
+  .attn-dot{width:8px;height:8px;border-radius:50%;flex:none;}
+  .attn-dot.overdue{background:var(--red);}
+  .attn-dot.due{background:var(--amber);}
+  .attn-dot.action{background:var(--slate);}
+  .attn-main{flex:1;min-width:0;}
+  .attn-title{font-weight:600;font-size:13.5px;}
+  .attn-sub{color:var(--muted);font-size:12px;margin-top:1px;}
+  .attn-tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;}
+  .empty-state{padding:34px 16px;text-align:center;color:var(--muted);}
+  .empty-state .big{font-size:14px;color:var(--ink);font-weight:600;margin-bottom:4px;}
+
+  /* ---- tables ---- */
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{
+    text-align:left;font-size:11.5px;color:var(--muted);font-weight:700;
+    padding:9px 12px;border-bottom:1px solid var(--border);background:#FAFBFC;
+    position:sticky;top:0;
+  }
+  td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tbody tr{transition:background .1s;}
+  tbody tr:hover{background:#FAFBFC;}
+  tbody tr.status-strip{box-shadow:inset 4px 0 0 var(--border);}
+  tbody tr.strip-overdue{box-shadow:inset 4px 0 0 var(--red);}
+  tbody tr.strip-due{box-shadow:inset 4px 0 0 var(--amber);}
+  tbody tr.strip-waiting{box-shadow:inset 4px 0 0 var(--blue);}
+  tbody tr.strip-parked{box-shadow:inset 4px 0 0 var(--slate);}
+  tbody tr.strip-action{box-shadow:inset 4px 0 0 #8A8FA0;}
+  tbody tr.strip-notdue{box-shadow:inset 4px 0 0 #D7DBE2;}
+  .clickable{cursor:pointer;}
+  .clickable .client-name{font-weight:600;}
+  .clickable .client-name:hover{text-decoration:underline;}
+  .table-wrap{overflow-x:auto;}
+  .cell-muted{color:var(--muted);}
+  .checkbox-col{width:34px;text-align:center;}
+
+  /* ---- badges ---- */
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+  .badge-overdue{background:var(--red-tint);color:var(--red);}
+  .badge-due{background:var(--amber-tint);color:var(--amber);}
+  .badge-notdue{background:var(--slate-tint);color:var(--slate);}
+  .badge-waiting{background:var(--blue-tint);color:var(--blue);}
+  .badge-parked{background:var(--slate-tint);color:var(--slate);}
+  .badge-completed{background:var(--green-tint);color:var(--green);}
+  .badge-action{background:#F2E9D8;color:#8A5B12;}
+  .badge-won{background:var(--green-tint);color:var(--green);}
+  .badge-lost{background:#EDEEF1;color:var(--muted);}
+  .pill{background:var(--slate-tint);color:var(--slate);font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:5px;}
+
+  /* ---- filter bar ---- */
+  .filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);}
+  .filter-bar select, .filter-bar input{font-size:12.5px;padding:6px 9px;}
+  .view-tabs{display:flex;gap:4px;margin-left:auto;background:#EEF0F3;padding:3px;border-radius:8px;}
+  .view-tab{padding:5px 12px;font-size:12.5px;font-weight:600;border-radius:6px;cursor:pointer;color:var(--muted);}
+  .view-tab.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-sm);}
+
+  .bulkbar{
+    display:none;align-items:center;gap:10px;padding:10px 16px;background:var(--primary-tint);
+    border-bottom:1px solid var(--border);font-size:13px;font-weight:600;
+  }
+  .bulkbar.show{display:flex;}
+  .bulkbar select{font-weight:600;}
+
+  /* ---- modal ---- */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(20,24,32,0.42);display:none;
+    align-items:flex-start;justify-content:center;z-index:50;padding:40px 16px;overflow-y:auto;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal{
+    background:var(--surface);border-radius:12px;max-width:640px;width:100%;
+    box-shadow:0 12px 36px rgba(20,24,32,0.25);margin-bottom:40px;
+  }
+  .modal.wide{max-width:820px;}
+  .modal-head{display:flex;align-items:flex-start;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);}
+  .modal-head h3{margin:0;font-size:16px;}
+  .modal-head .sub{color:var(--muted);font-size:12.5px;margin-top:3px;}
+  .modal-close{cursor:pointer;color:var(--muted);font-size:20px;line-height:1;border:none;background:none;padding:4px;}
+  .modal-body{padding:20px 22px;max-height:70vh;overflow-y:auto;}
+  .modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:16px 22px;border-top:1px solid var(--border);}
+
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;}
+  .form-grid.full{grid-template-columns:1fr;}
+  .field{display:flex;flex-direction:column;gap:4px;}
+  .field label{font-size:12px;font-weight:700;color:var(--muted);}
+  .field input,.field select,.field textarea{width:100%;}
+  .field-note{font-size:11.5px;color:var(--muted-2);}
+  .section-label{font-size:11.5px;font-weight:700;color:var(--muted-2);text-transform:uppercase;letter-spacing:0.4px;margin:18px 0 8px;}
+  .section-label:first-child{margin-top:0;}
+  .banner{
+    display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:7px;font-size:12.5px;margin-bottom:14px;
+  }
+  .banner-warn{background:var(--amber-tint);color:#7A4E08;}
+  .banner-info{background:var(--blue-tint);color:#1E4A80;}
+
+  /* ---- timeline ---- */
+  .timeline{list-style:none;margin:0;padding:0;}
+  .timeline li{display:flex;gap:10px;padding:0 0 16px 0;position:relative;}
+  .timeline li:last-child{padding-bottom:0;}
+  .tl-dot{width:9px;height:9px;border-radius:50%;background:var(--primary);margin-top:5px;flex:none;position:relative;z-index:1;}
+  .tl-line{position:absolute;left:4px;top:14px;bottom:-2px;width:1px;background:var(--border-strong);}
+  .tl-body{flex:1;}
+  .tl-title{font-size:13px;font-weight:600;}
+  .tl-meta{font-size:11.5px;color:var(--muted);margin-top:1px;}
+  .tl-notes{font-size:12.5px;color:var(--ink);margin-top:3px;}
+
+  .toast{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(12px);
+    background:var(--ink);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;
+    opacity:0;pointer-events:none;transition:opacity .18s, transform .18s;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,0.25);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .checkbox{width:16px;height:16px;accent-color:var(--primary);cursor:pointer;}
+  .imp-textarea{width:100%;min-height:150px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;}
+  .imp-example{background:#F7F8FA;border:1px solid var(--border);border-radius:7px;padding:10px 12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--muted);white-space:pre-wrap;line-height:1.6;}
+
+  .sync-panel{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 16px;border-bottom:1px solid var(--border);}
+  .sync-dot{width:8px;height:8px;border-radius:50%;flex:none;}
+  .sync-dot.on{background:var(--green);}
+  .sync-dot.off{background:var(--muted-2);}
+  .sync-status{font-size:12.5px;font-weight:600;}
+  .sync-status .muted{color:var(--muted);font-weight:400;}
+  .badge-cancelled{background:#EDEEF1;color:var(--muted);text-decoration:line-through;}
+
+  @media (max-width:980px){
+    .metric-row{grid-template-columns:repeat(4,1fr);}
+    .form-grid{grid-template-columns:1fr;}
+  }
+  @media (max-width:760px){
+    .sidebar{display:none;}
+    .metric-row{grid-template-columns:repeat(2,1fr);}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-name">GeoIQ Follow-ups</div>
+      <div class="brand-sub">Sales conversation tracker</div>
+    </div>
+    <div class="nav" id="navList"></div>
+    <div class="sidebar-foot" id="syncFoot">Not synced yet</div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="search-wrap">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="globalSearch" placeholder="Search client, contact, email or deal…" oninput="onGlobalSearch()">
+      </div>
+      <div class="topbar-actions">
+        <button class="btn" onclick="openImportEvents()">＋ Add manually</button>
+        <button class="btn" onclick="exportData()">Export snapshot</button>
+        <button class="btn" onclick="document.getElementById('importFile').click()">Import snapshot</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importData(event)">
+      </div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ============ MODAL: Google Calendar connection ============ -->
+<div class="modal-overlay" id="modalGoogleSettings">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h3>Connect Google Calendar</h3>
+        <div class="sub">One-time setup, using your own Google Cloud OAuth Client ID.</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modalGoogleSettings')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="banner banner-info">This app only requests read-only access to your calendar (<code>calendar.readonly</code>). Nothing is sent anywhere except directly to Google's API from your browser.</div>
+      <div class="field">
+        <label>OAuth Client ID</label>
+        <input id="googleClientIdInput" placeholder="xxxxxxxxxx.apps.googleusercontent.com" value="">
+        <div class="field-note">From Google Cloud Console → APIs &amp; Services → Credentials. Ask Claude if you need the setup steps again.</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('modalGoogleSettings')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveGoogleSettings()">Save & connect</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: Import Events ============ -->
+<div class="modal-overlay" id="modalImportEvents">
+  <div class="modal wide">
+    <div class="modal-head">
+      <div>
+        <h3>Log conversations from calendar</h3>
+        <div class="sub">Paste an export from Google Calendar (or type entries manually), one per line.</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modalImportEvents')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="section-label">Paste events</div>
+      <textarea class="imp-textarea" id="importText" placeholder="Title | Date (YYYY-MM-DD) | Time | Attendee Name | Attendee Email | Type"></textarea>
+      <div class="section-label">Format</div>
+      <div class="imp-example">Title | Date | Time | Attendee Name | Attendee Email | Type
+ABC Retail Demo | 2026-09-16 | 3:00 PM | Rahul Sharma | rahul@abcretail.com | Demo
+XYZ Foods Discovery | 2026-09-17 | 11:00 AM | Priya Nair | priya@xyzfoods.com | Discovery
+Internal Sales Sync | 2026-09-17 | 4:00 PM | | | Internal
+
+CSV with a header row (Title,Date,Time,Attendee Name,Attendee Email,Type) also works.
+Type is one of: Demo, Discovery, Follow-up, Presales, Internal, Other.</div>
+      <div class="field-note" style="margin-top:8px;">Duplicate events (same title, date and attendee email) are skipped automatically.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('modalImportEvents')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitImportEvents()">Parse & review</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: Add selected events to deals ============ -->
+<div class="modal-overlay" id="modalAddToDeal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h3 id="addToDealTitle">Add to deals</h3>
+        <div class="sub">Set the deal type and owner. You can adjust each deal afterward.</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modalAddToDeal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>Deal type</label>
+          <select id="addDealType">
+            <option>Demo</option><option>Discovery</option><option>Follow-up</option><option>Presales</option><option>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Owner</label>
+          <input id="addDealOwner" list="ownersList" placeholder="e.g. Arjun">
+          <datalist id="ownersList"></datalist>
+        </div>
+      </div>
+      <div class="field-note" style="margin-top:10px;" id="addToDealCount"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('modalAddToDeal')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmAddToDeal()">Create deal(s)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: Deal detail ============ -->
+<div class="modal-overlay" id="modalDeal">
+  <div class="modal wide">
+    <div class="modal-head">
+      <div>
+        <h3 id="dealModalTitle">Deal</h3>
+        <div class="sub" id="dealModalSub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modalDeal')">&times;</button>
+    </div>
+    <div class="modal-body" id="dealModalBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" style="margin-right:auto;" onclick="deleteDeal()">Delete deal</button>
+      <button class="btn" onclick="closeModal('modalDeal')">Close</button>
+      <button class="btn btn-primary" onclick="saveDealForm()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: Compose email ============ -->
+<div class="modal-overlay" id="modalEmail">
+  <div class="modal wide">
+    <div class="modal-head">
+      <div>
+        <h3 id="emailModalTitle">Send follow-up email</h3>
+        <div class="sub" id="emailModalSub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modalEmail')">&times;</button>
+    </div>
+    <div class="modal-body" id="emailModalBody"></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('modalEmail')">Cancel</button>
+      <button class="btn btn-primary" onclick="sendEmailAction()">Open in email client & log as sent</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: bulk schedule / mark ============ -->
+<div class="modal-overlay" id="modalBulk">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h3 id="bulkModalTitle">Update deals</h3>
+        <div class="sub" id="bulkModalSub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modalBulk')">&times;</button>
+    </div>
+    <div class="modal-body" id="bulkModalBody"></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('modalBulk')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmBulkAction()">Apply</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   GeoIQ Follow-up Manager
+   Single-file, offline-first sales follow-up tracker.
+   Data is stored in this browser's localStorage. One person (the presales
+   head) is expected to maintain it; use Export/Import to distribute or
+   back up snapshots for the rest of the team.
+========================================================================= */
+
+const STORAGE_KEY = 'geoiq_followup_db_v1';
+const DEAL_TYPES = ['Demo','Discovery','Follow-up','Presales','Other'];
+const STATUSES = ['Demo Scheduled','Demo Completed','Follow-up','Presales','Proposal','Won','Lost','Parked'];
+const DEMO_OUTCOMES = ['','Interested','Follow-up Required','Proposal','Presales','Not Interested','No-show'];
+const NEXT_ACTIONS = ['','Send Email','Call','Send Proposal','Presales Analysis','Schedule Meeting','Wait for Client','Other'];
+const RESPONSE_STATUSES = ['','Awaiting Response','Responded','No Response','Meeting Booked','Not Interested'];
+const FOLLOWUP_TYPES = ['Email','Call','Meeting','Proposal','Presales','Other'];
+
+const EMAIL_TEMPLATES = {
+  'post_demo': {
+    label: 'Post-Demo Follow-up',
+    subject: d => `Great speaking with you, ${firstName(d.contactName)}`,
+    body: d => `Hi ${firstName(d.contactName) || 'there'},\n\nThanks for the time today — it was great walking you through GeoIQ and hearing more about ${d.clientName || 'your'} priorities.\n\nAs discussed, I'll follow up with the next steps shortly. In the meantime, let me know if any questions come up.\n\nBest,\n${d.owner || ''}`
+  },
+  'no_response_3': {
+    label: 'No Response — 3 Days',
+    subject: d => `Following up — ${d.clientName || ''}`,
+    body: d => `Hi ${firstName(d.contactName) || 'there'},\n\nJust following up on my last note — wanted to check if you had a chance to look it over.\n\nHappy to jump on a quick call if that's easier.\n\nBest,\n${d.owner || ''}`
+  },
+  'no_response_7': {
+    label: 'No Response — 7 Days',
+    subject: d => `Checking in — ${d.clientName || ''}`,
+    body: d => `Hi ${firstName(d.contactName) || 'there'},\n\nI don't want to keep cluttering your inbox, so this'll be my last check-in for now. If it's helpful to reconnect down the line, just let me know and I'll be happy to pick this back up.\n\nBest,\n${d.owner || ''}`
+  },
+  'proposal_followup': {
+    label: 'Proposal Follow-up',
+    subject: d => `Following up on the proposal — ${d.clientName || ''}`,
+    body: d => `Hi ${firstName(d.contactName) || 'there'},\n\nWanted to check in on the proposal I shared — happy to walk through any part of it or adjust scope/pricing based on where things stand internally.\n\nLet me know a good time to reconnect.\n\nBest,\n${d.owner || ''}`
+  },
+  'presales_followup': {
+    label: 'Presales Follow-up',
+    subject: d => `Presales next steps — ${d.clientName || ''}`,
+    body: d => `Hi ${firstName(d.contactName) || 'there'},\n\nFollowing up on the presales analysis for ${d.clientName || 'your team'}. Let me know if you need anything further from our side to move this forward.\n\nBest,\n${d.owner || ''}`
+  },
+  'close_loop': {
+    label: 'Close the Loop',
+    subject: d => `Closing the loop — ${d.clientName || ''}`,
+    body: d => `Hi ${firstName(d.contactName) || 'there'},\n\nSince we haven't heard back, I'll close this out on our end for now. If priorities change and this becomes relevant again, please reach out any time — happy to pick things back up.\n\nBest,\n${d.owner || ''}`
+  }
+};
+
+/* ---------------- state ---------------- */
+let DB = loadDB();
+let currentView = 'dashboard';
+let searchTerm = '';
+let selectedDealIds = new Set();
+let selectedEventIds = new Set();
+let followupViewFilter = 'active'; // active | due | overdue | waiting | parked | won | lost
+let activeDealId = null;
+
+function loadDB(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){ console.warn('Could not read saved data, starting fresh.', e); }
+  return { events: [], deals: [], meta: { lastSync: null } };
+}
+function saveDB(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
+  renderSyncFoot();
+}
+
+/* ---------------- utils ---------------- */
+function uid(prefix){ return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function nowISO(){ return new Date().toISOString(); }
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function firstName(full){ if(!full) return ''; return full.trim().split(/\s+/)[0]; }
+function fmtDate(iso){
+  if(!iso) return '—';
+  const d = new Date(iso + (iso.length<=10 ? 'T00:00:00' : ''));
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString('en-US',{day:'numeric',month:'short'});
+}
+function fmtDateTime(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString('en-US',{day:'numeric',month:'short'}) + ', ' + d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}
+function daysDiffFromToday(iso){
+  if(!iso) return null;
+  const today = new Date(todayISO()+'T00:00:00');
+  const d = new Date(iso+'T00:00:00');
+  return Math.round((d-today)/86400000);
+}
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+function ownersInUse(){
+  const set = new Set();
+  DB.deals.forEach(d=>{ if(d.owner) set.add(d.owner); });
+  return Array.from(set).sort();
+}
+function refreshOwnersDatalist(){
+  const dl = document.getElementById('ownersList');
+  if(dl) dl.innerHTML = ownersInUse().map(o=>`<option value="${escapeHtml(o)}">`).join('');
+}
+
+/* ---------------- follow-up status logic ---------------- */
+function followUpStatus(deal){
+  if(deal.status==='Won' || deal.status==='Lost') return 'Completed';
+  if(deal.status==='Parked') return 'Parked';
+  if(!deal.owner || !deal.nextAction || !deal.followUpDate) return 'Action Required';
+  const diff = daysDiffFromToday(deal.followUpDate);
+  if(diff < 0) return 'Overdue';
+  if(diff === 0) return 'Due Today';
+  if(deal.responseStatus === 'Awaiting Response') return 'Awaiting Client';
+  return 'Not Due';
+}
+function statusBadgeClass(s){
+  return {
+    'Overdue':'badge-overdue','Due Today':'badge-due','Not Due':'badge-notdue',
+    'Awaiting Client':'badge-waiting','Parked':'badge-parked','Completed':'badge-completed',
+    'Action Required':'badge-action'
+  }[s] || 'badge-notdue';
+}
+function statusStripClass(s){
+  return {
+    'Overdue':'strip-overdue','Due Today':'strip-due','Not Due':'strip-notdue',
+    'Awaiting Client':'strip-waiting','Parked':'strip-parked','Completed':'strip-notdue',
+    'Action Required':'strip-action'
+  }[s] || 'strip-notdue';
+}
+function dealBadge(status){
+  if(status==='Won') return `<span class="badge badge-won">Won</span>`;
+  if(status==='Lost') return `<span class="badge badge-lost">Lost</span>`;
+  return `<span class="pill">${escapeHtml(status)}</span>`;
+}
+function isNoResponseStale(d){
+  if(d.responseStatus!=='Awaiting Response' || !d.lastEmailDate) return false;
+  const diff = Math.round((new Date()-new Date(d.lastEmailDate))/86400000);
+  return diff >= 7;
+}
+
+/* ---------------- timeline ---------------- */
+function addTimeline(deal, type, notes){
+  deal.timeline = deal.timeline || [];
+  deal.timeline.push({ type, timestamp: nowISO(), user: deal.owner || 'Unassigned', notes: notes || '' });
+}
+
+/* ============================================================
+   NAV / RENDER ROOT
+============================================================ */
+const NAV_ITEMS = [
+  { id:'dashboard', label:'My Follow-ups' },
+  { id:'calendar', label:'Calendar' },
+  { id:'deals', label:'Deals' },
+  { id:'followups', label:'Follow-up Tracker' }
+];
+
+function renderNav(){
+  const activeDeals = DB.deals.filter(d=>d.status!=='Won' && d.status!=='Lost');
+  const dueOrOverdue = activeDeals.filter(d=>{
+    const s = followUpStatus(d);
+    return s==='Due Today' || s==='Overdue';
+  }).length;
+  const newEvents = DB.events.filter(e=>e.status==='New').length;
+
+  const badges = {
+    dashboard: dueOrOverdue,
+    calendar: newEvents,
+    deals: 0,
+    followups: dueOrOverdue
+  };
+
+  document.getElementById('navList').innerHTML = NAV_ITEMS.map(item=>{
+    const b = badges[item.id];
+    const badgeHtml = b ? `<span class="nav-badge ${b>0 && (item.id==='dashboard'||item.id==='followups') ? 'hot':''}">${b}</span>` : '';
+    return `<div class="nav-item ${currentView===item.id?'active':''}" onclick="setView('${item.id}')">
+      <span>${item.label}</span>${badgeHtml}
+    </div>`;
+  }).join('');
+}
+function renderSyncFoot(){
+  const el = document.getElementById('syncFoot');
+  const ls = DB.meta.lastSync;
+  el.textContent = ls ? `Last synced ${fmtDateTime(ls)}` : 'Not synced yet — import your calendar events to begin';
+}
+function setView(v){
+  currentView = v;
+  searchTerm='';
+  const gs = document.getElementById('globalSearch'); if(gs) gs.value='';
+  render();
+}
+function onGlobalSearch(){
+  searchTerm = document.getElementById('globalSearch').value.trim().toLowerCase();
+  render();
+}
+
+function render(){
+  renderNav();
+  renderSyncFoot();
+  const c = document.getElementById('content');
+  if(currentView==='dashboard') c.innerHTML = renderDashboard();
+  else if(currentView==='calendar') c.innerHTML = renderCalendar();
+  else if(currentView==='deals') c.innerHTML = renderDeals();
+  else if(currentView==='followups') c.innerHTML = renderFollowups();
+}
+
+/* ============================================================
+   DASHBOARD
+============================================================ */
+function renderDashboard(){
+  const deals = DB.deals;
+  const active = deals.filter(d=>d.status!=='Won' && d.status!=='Lost' && d.status!=='Parked');
+  const dueToday = deals.filter(d=>followUpStatus(d)==='Due Today').length;
+  const overdue = deals.filter(d=>followUpStatus(d)==='Overdue').length;
+  const waiting = deals.filter(d=>followUpStatus(d)==='Awaiting Client').length;
+  const parked = deals.filter(d=>d.status==='Parked').length;
+  const won = deals.filter(d=>d.status==='Won').length;
+  const lost = deals.filter(d=>d.status==='Lost').length;
+
+  const attention = deals
+    .filter(d=>{
+      const s = followUpStatus(d);
+      return s==='Overdue' || s==='Due Today' || s==='Action Required' || isNoResponseStale(d);
+    })
+    .sort((a,b)=>{
+      const order = {'Overdue':0,'Action Required':1,'Due Today':2};
+      const sa = followUpStatus(a), sb = followUpStatus(b);
+      return (order[sa]??3) - (order[sb]??3);
+    });
+
+  return `
+    <h1>My Follow-ups</h1>
+    <p class="page-sub">What needs your attention today, at a glance.</p>
+
+    <div class="metric-row">
+      ${metricCard('active', active.length, 'Active Deals')}
+      ${metricCard('due', dueToday, 'Due Today')}
+      ${metricCard('overdue', overdue, 'Overdue')}
+      ${metricCard('waiting', waiting, 'Awaiting Client')}
+      ${metricCard('parked', parked, 'Parked')}
+      ${metricCard('won', won, 'Won')}
+      ${metricCard('lost', lost, 'Lost')}
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Needs attention</h2></div>
+      <div class="panel-body pad0">
+        ${attention.length===0 ? emptyState('Nothing needs attention', "You're fully caught up. New due or overdue follow-ups will show up here.") :
+          attention.map(d=>attentionRow(d)).join('')}
+      </div>
+    </div>
+
+    ${DB.deals.length===0 ? `
+    <div class="panel">
+      <div class="panel-body" style="text-align:center;padding:40px 20px;">
+        <div style="font-weight:700;font-size:15px;margin-bottom:6px;">Get started</div>
+        <div class="page-sub" style="margin-bottom:16px;">Log a few conversations from your calendar, then turn the real ones into deals.</div>
+        <button class="btn btn-primary" onclick="openImportEvents()">＋ Log conversation</button>
+      </div>
+    </div>` : ''}
+  `;
+}
+function metricCard(cls, num, label){
+  return `<div class="metric-card ${cls}" onclick="jumpMetric('${cls}')"><div class="num">${num}</div><div class="label">${label}</div></div>`;
+}
+function jumpMetric(cls){
+  const map = {active:'active',due:'due',overdue:'overdue',waiting:'waiting',parked:'parked',won:'won',lost:'lost'};
+  followupViewFilter = map[cls] || 'active';
+  setView('followups');
+}
+function attentionRow(d){
+  const s = followUpStatus(d);
+  let dotClass='action', tagClass='badge-action', tagText=s;
+  if(s==='Overdue'){dotClass='overdue';tagClass='badge-overdue';}
+  else if(s==='Due Today'){dotClass='due';tagClass='badge-due';}
+  if(isNoResponseStale(d) && s!=='Overdue'){ tagText='No response 7+ days'; tagClass='badge-overdue'; dotClass='overdue'; }
+  return `<div class="attn-item" onclick="openDeal('${d.id}')">
+    <span class="attn-dot ${dotClass}"></span>
+    <div class="attn-main">
+      <div class="attn-title">${escapeHtml(d.clientName)} <span class="cell-muted" style="font-weight:400;">· ${escapeHtml(d.status)}</span></div>
+      <div class="attn-sub">${d.nextAction ? 'Next: '+escapeHtml(d.nextAction) : 'No next action set'} ${d.followUpDate ? '· Follow-up '+fmtDate(d.followUpDate) : '· No follow-up date'} · Owner: ${escapeHtml(d.owner||'Unassigned')}</div>
+    </div>
+    <span class="badge ${tagClass}">${escapeHtml(tagText)}</span>
+  </div>`;
+}
+function emptyState(big, small){
+  return `<div class="empty-state"><div class="big">${escapeHtml(big)}</div><div>${escapeHtml(small)}</div></div>`;
+}
+
+/* ============================================================
+   CALENDAR (Stage 1)
+============================================================ */
+function renderCalendar(){
+  let events = DB.events.slice().sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  if(searchTerm){
+    events = events.filter(e => (e.title+' '+e.attendeeName+' '+e.attendeeEmail).toLowerCase().includes(searchTerm));
+  }
+  const rows = events.map(e=>{
+    const isCancelled = e.status==='Cancelled';
+    const checked = selectedEventIds.has(e.id) ? 'checked' : '';
+    const disabled = (e.status!=='New' && e.status!=='Updated') ? 'disabled' : '';
+    let statusBadge = e.status==='New' ? `<span class="badge badge-notdue">New</span>`
+      : e.status==='Updated' ? `<span class="badge badge-due">Updated</span>`
+      : e.status==='Ignored' ? `<span class="badge badge-lost">Ignored</span>`
+      : e.status==='Cancelled' ? `<span class="badge badge-cancelled">Cancelled</span>`
+      : `<span class="badge badge-completed">Added to Deal</span>`;
+    return `<tr>
+      <td class="checkbox-col"><input type="checkbox" class="checkbox" ${checked} ${disabled} onchange="toggleEventSelect('${e.id}', this.checked)"></td>
+      <td><strong ${isCancelled?'style="text-decoration:line-through;color:var(--muted);"':''}>${escapeHtml(e.title)}</strong>${e.eventUrl? ` <a href="${escapeHtml(e.eventUrl)}" target="_blank" rel="noopener" style="font-size:11px;">↗</a>`:''}</td>
+      <td>${fmtDate(e.date)}${e.time ? ', '+escapeHtml(e.time) : ''}</td>
+      <td>${e.attendeeName ? escapeHtml(e.attendeeName) + (e.attendeeEmail? ' · <span class="cell-muted">'+escapeHtml(e.attendeeEmail)+'</span>':'') : '<span class="cell-muted">—</span>'}</td>
+      <td>${escapeHtml(e.type||'Other')}</td>
+      <td>${statusBadge}</td>
+      <td>${e.dealId ? `<button class="btn btn-sm" onclick="openDeal('${e.dealId}')">View deal</button>` : ((e.status==='New'||e.status==='Updated') ? `<button class="btn btn-sm btn-danger" onclick="ignoreEvents(['${e.id}'])">Ignore</button>` : '')}</td>
+    </tr>`;
+  }).join('');
+
+  const selectedNewCount = Array.from(selectedEventIds).filter(id=>{
+    const ev = DB.events.find(e=>e.id===id); return ev && (ev.status==='New'||ev.status==='Updated');
+  }).length;
+
+  const connected = !!DB.meta.googleConnected;
+  const email = DB.meta.googleEmail || '';
+
+  return `
+    <h1>Calendar</h1>
+    <p class="page-sub">Conversations pulled in from your calendar. Select the ones that are real sales conversations and turn them into deals — everything else you can ignore.</p>
+
+    <div class="panel">
+      <div class="sync-panel">
+        <span class="sync-dot ${connected?'on':'off'}"></span>
+        <span class="sync-status">${connected? 'Connected to Google Calendar' : 'Not connected'} ${email? `<span class="muted">· ${escapeHtml(email)}</span>`:''}</span>
+        <select id="syncRange" style="margin-left:8px;">
+          <option value="7">Past 7 days</option>
+          <option value="30" selected>Past 30 days</option>
+          <option value="90">Past 90 days</option>
+        </select>
+        <span class="cell-muted" style="font-size:12px;">+ next 30 days</span>
+        <div style="flex:1;"></div>
+        <span class="cell-muted" style="font-size:12px;">${DB.meta.lastSync? 'Last synced '+fmtDateTime(DB.meta.lastSync) : 'Never synced'}</span>
+        ${connected ? `
+          <button class="btn btn-sm" onclick="disconnectGoogleCalendar()">Disconnect</button>
+          <button class="btn btn-sm btn-primary" id="syncBtn" onclick="runGoogleSync()">Sync Calendar</button>
+        ` : `
+          <button class="btn btn-sm btn-primary" onclick="connectGoogleCalendar()">Connect Google Calendar</button>
+          <button class="btn btn-sm btn-ghost" onclick="openGoogleSettings()" title="Use a different OAuth Client ID">⚙</button>
+        `}
+        <button class="btn btn-sm" onclick="copyConnectLink()" title="Copy a link teammates can open to connect their own calendar">🔗 Copy connect link</button>
+      </div>
+      <div class="filter-bar">
+        <button class="btn btn-sm" onclick="selectAllEvents(true)">Select all new</button>
+        <button class="btn btn-sm" onclick="selectAllEvents(false)">Deselect all</button>
+        <div style="flex:1;"></div>
+        <button class="btn btn-sm btn-danger" ${selectedNewCount? '' : 'disabled'} onclick="ignoreEvents(Array.from(selectedEventIds))">Ignore selected</button>
+        <button class="btn btn-sm btn-primary" ${selectedNewCount? '' : 'disabled'} onclick="beginAddToDeal()">Add selected to deals (${selectedNewCount})</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th class="checkbox-col"></th><th>Event</th><th>Date</th><th>Attendee</th><th>Type</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody>
+            ${events.length? rows : `<tr><td colspan="7">${emptyState('No conversations logged yet',"Connect Google Calendar and sync, or use 'Add manually' above.")}</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+function toggleEventSelect(id, checked){
+  if(checked) selectedEventIds.add(id); else selectedEventIds.delete(id);
+  render();
+}
+function selectAllEvents(select){
+  if(select){ DB.events.forEach(e=>{ if(e.status==='New'||e.status==='Updated') selectedEventIds.add(e.id); }); }
+  else { selectedEventIds.clear(); }
+  render();
+}
+function ignoreEvents(ids){
+  ids.forEach(id=>{
+    const e = DB.events.find(x=>x.id===id);
+    if(e && (e.status==='New'||e.status==='Updated')){ e.status='Ignored'; selectedEventIds.delete(id); }
+  });
+  saveDB(); render();
+  toast(`Ignored ${ids.length} conversation${ids.length===1?'':'s'}`);
+}
+function beginAddToDeal(){
+  const ids = Array.from(selectedEventIds).filter(id=>{
+    const ev = DB.events.find(e=>e.id===id); return ev && (ev.status==='New'||ev.status==='Updated');
+  });
+  if(ids.length===0) return;
+  document.getElementById('addToDealCount').textContent = `Creating ${ids.length} deal${ids.length===1?'':'s'} from the selected conversation${ids.length===1?'':'s'}.`;
+  document.getElementById('addDealOwner').value='';
+  refreshOwnersDatalist();
+  openModal('modalAddToDeal');
+  window._pendingEventIds = ids;
+}
+function confirmAddToDeal(){
+  const type = document.getElementById('addDealType').value;
+  const owner = document.getElementById('addDealOwner').value.trim();
+  const ids = window._pendingEventIds || [];
+  ids.forEach(id=>{
+    const e = DB.events.find(x=>x.id===id);
+    if(!e) return;
+    const deal = {
+      id: uid('deal'),
+      clientName: guessClientName(e.title),
+      contactName: e.attendeeName || '',
+      contactEmail: e.attendeeEmail || '',
+      calendarEventId: e.id,
+      meetingDate: e.date,
+      meetingTime: e.time || '',
+      meetingLink: e.meetingLink || '',
+      dealType: type,
+      owner: owner,
+      status: 'Demo Scheduled',
+      demoOutcome: '',
+      nextAction: 'Send Email',
+      followUpDate: '',
+      lastInteraction: e.date,
+      lastInteractionType: e.type,
+      lastEmailSent: 'No',
+      lastEmailDate: '',
+      responseStatus: '',
+      notes: '',
+      createdDate: nowISO(),
+      lastUpdated: nowISO(),
+      timeline: []
+    };
+    addTimeline(deal, 'Deal created', `Created from calendar conversation "${e.title}"`);
+    DB.deals.push(deal);
+    e.status = 'Already Added to Deal';
+    e.dealId = deal.id;
+    selectedEventIds.delete(id);
+  });
+  saveDB();
+  closeModal('modalAddToDeal');
+  toast(`Created ${ids.length} deal${ids.length===1?'':'s'}`);
+  setView('deals');
+}
+function guessClientName(title){
+  // strip common meeting-type suffixes to guess a client/company name
+  return title.replace(/\b(demo|discovery|follow-?up|presales|call|meeting|sync|intro)\b/gi,'').trim().replace(/\s{2,}/g,' ') || title;
+}
+
+/* ---- import events (paste) ---- */
+function openImportEvents(){
+  document.getElementById('importText').value='';
+  openModal('modalImportEvents');
+}
+function submitImportEvents(){
+  const raw = document.getElementById('importText').value;
+  const lines = raw.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+  if(lines.length===0){ toast('Paste at least one event first'); return; }
+
+  let added=0, skipped=0;
+  const existingKeys = new Set(DB.events.map(e => eventKey(e)));
+
+  // detect CSV header
+  let startIdx = 0;
+  let colMap = null;
+  const headerCandidates = ['title','event','date','time','attendee','email','type'];
+  const firstLower = lines[0].toLowerCase();
+  if(firstLower.includes(',') && headerCandidates.some(h=>firstLower.includes(h))){
+    const headers = lines[0].split(',').map(h=>h.trim().toLowerCase());
+    colMap = headers;
+    startIdx = 1;
+  }
+
+  for(let i=startIdx;i<lines.length;i++){
+    const line = lines[i];
+    let parts;
+    let rec = {};
+    if(colMap){
+      parts = splitCsvLine(line);
+      colMap.forEach((h,idx)=>{
+        const v = (parts[idx]||'').trim();
+        if(h.includes('title') || h.includes('event')) rec.title=v;
+        else if(h.includes('date')) rec.date=normalizeDate(v);
+        else if(h.includes('time')) rec.time=v;
+        else if(h.includes('attendee') && h.includes('email')) rec.attendeeEmail=v;
+        else if(h.includes('email')) rec.attendeeEmail=v;
+        else if(h.includes('attendee') || h.includes('name')) rec.attendeeName=v;
+        else if(h.includes('type')) rec.type=v;
+      });
+    } else {
+      parts = line.split('|').map(p=>p.trim());
+      rec = {
+        title: parts[0]||'Untitled conversation',
+        date: normalizeDate(parts[1]||''),
+        time: parts[2]||'',
+        attendeeName: parts[3]||'',
+        attendeeEmail: parts[4]||'',
+        type: parts[5]||'Other'
+      };
+    }
+    rec.title = rec.title || 'Untitled conversation';
+    rec.type = rec.type || 'Other';
+    const key = (rec.title+'|'+rec.date+'|'+(rec.attendeeEmail||'')).toLowerCase();
+    if(existingKeys.has(key)){ skipped++; continue; }
+    existingKeys.add(key);
+    DB.events.push({
+      id: uid('evt'),
+      title: rec.title, date: rec.date||'', time: rec.time||'',
+      attendeeName: rec.attendeeName||'', attendeeEmail: rec.attendeeEmail||'',
+      type: rec.type, status:'New', dealId:null, meetingLink:'',
+      createdAt: nowISO()
+    });
+    added++;
+  }
+  DB.meta.lastSync = nowISO();
+  saveDB();
+  closeModal('modalImportEvents');
+  setView('calendar');
+  toast(`Added ${added} conversation${added===1?'':'s'}${skipped? `, skipped ${skipped} duplicate${skipped===1?'':'s'}`:''}`);
+}
+function eventKey(e){ return (e.title+'|'+e.date+'|'+(e.attendeeEmail||'')).toLowerCase(); }
+function splitCsvLine(line){
+  // minimal CSV split (no embedded-quote support needed for this simple use case)
+  return line.split(',').map(s=>s.replace(/^"|"$/g,'').trim());
+}
+function normalizeDate(v){
+  if(!v) return '';
+  v = v.trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  const d = new Date(v);
+  if(!isNaN(d)) return d.toISOString().slice(0,10);
+  return v;
+}
+
+/* ============================================================
+   GOOGLE CALENDAR SYNC
+   Uses Google Identity Services (client-side OAuth token flow) plus
+   the Calendar API directly from the browser — no server of ours
+   involved. Requires the person to supply their own OAuth Client ID,
+   and the page to be served from a real https origin (not file://).
+========================================================================= */
+const GOOGLE_CLIENT_ID_KEY = 'geoiq_google_client_id';
+const DEFAULT_GOOGLE_CLIENT_ID = '633559648231-njpimcd973ce7psr100gnkutc9fq4bu7.apps.googleusercontent.com';
+const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
+let gisTokenClient = null;
+let googleAccessToken = null;
+let googleTokenExpiry = 0;
+
+function getGoogleClientId(){ return localStorage.getItem(GOOGLE_CLIENT_ID_KEY) || DEFAULT_GOOGLE_CLIENT_ID; }
+function openGoogleSettings(){
+  document.getElementById('googleClientIdInput').value = getGoogleClientId();
+  openModal('modalGoogleSettings');
+}
+function saveGoogleSettings(){
+  const val = document.getElementById('googleClientIdInput').value.trim();
+  if(!val){ toast('Paste your OAuth Client ID first'); return; }
+  localStorage.setItem(GOOGLE_CLIENT_ID_KEY, val);
+  gisTokenClient = null; // force re-init with new client id
+  closeModal('modalGoogleSettings');
+  connectGoogleCalendar();
+}
+function ensureTokenClient(){
+  const cid = getGoogleClientId();
+  if(!cid){ openGoogleSettings(); return null; }
+  if(!window.google || !google.accounts || !google.accounts.oauth2){
+    toast('Google sign-in script hasn\u2019t loaded — check your internet connection and try again.');
+    return null;
+  }
+  if(!gisTokenClient){
+    gisTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: cid,
+      scope: GOOGLE_SCOPE,
+      callback: () => {}
+    });
+  }
+  return gisTokenClient;
+}
+function connectGoogleCalendar(){
+  const tc = ensureTokenClient();
+  if(!tc) return;
+  tc.callback = async (resp) => {
+    if(resp.error){ toast('Google sign-in failed: ' + resp.error); return; }
+    googleAccessToken = resp.access_token;
+    googleTokenExpiry = Date.now() + (resp.expires_in*1000 - 60000);
+    let email = '';
+    try{
+      const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers:{ Authorization:'Bearer '+googleAccessToken } });
+      const d = await r.json();
+      email = d.email || '';
+    }catch(e){ /* non-fatal */ }
+    DB.meta.googleConnected = true;
+    DB.meta.googleEmail = email;
+    saveDB();
+    render();
+    toast('Connected to Google Calendar' + (email ? ' as ' + email : ''));
+  };
+  tc.requestAccessToken({ prompt: 'consent' });
+}
+function copyConnectLink(){
+  const link = location.origin + location.pathname + '?view=calendar';
+  const done = () => toast('Connect link copied — send it to your team');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(link).then(done).catch(()=>{
+      prompt('Copy this link:', link);
+    });
+  } else {
+    prompt('Copy this link:', link);
+  }
+}
+function disconnectGoogleCalendar(){
+  if(googleAccessToken && window.google && google.accounts.oauth2.revoke){
+    google.accounts.oauth2.revoke(googleAccessToken, ()=>{});
+  }
+  googleAccessToken = null;
+  googleTokenExpiry = 0;
+  DB.meta.googleConnected = false;
+  DB.meta.googleEmail = '';
+  saveDB();
+  render();
+  toast('Disconnected from Google Calendar');
+}
+function ensureValidToken(){
+  if(googleAccessToken && Date.now() < googleTokenExpiry) return Promise.resolve(googleAccessToken);
+  return new Promise((resolve, reject)=>{
+    const tc = ensureTokenClient();
+    if(!tc) return reject(new Error('Not connected'));
+    tc.callback = (resp) => {
+      if(resp.error) return reject(new Error(resp.error));
+      googleAccessToken = resp.access_token;
+      googleTokenExpiry = Date.now() + (resp.expires_in*1000 - 60000);
+      resolve(googleAccessToken);
+    };
+    tc.requestAccessToken({ prompt: '' });
+  });
+}
+async function runGoogleSync(){
+  const btn = document.getElementById('syncBtn');
+  const pastDays = parseInt(document.getElementById('syncRange').value, 10) || 30;
+  if(btn){ btn.disabled = true; btn.textContent = 'Syncing…'; }
+  try{
+    const token = await ensureValidToken();
+    const timeMin = new Date(Date.now() - pastDays*86400000).toISOString();
+    const timeMax = new Date(Date.now() + 30*86400000).toISOString();
+    let items = [];
+    let pageToken = '';
+    do{
+      const url = new URL('https://www.googleapis.com/calendar/v3/calendars/primary/events');
+      url.searchParams.set('timeMin', timeMin);
+      url.searchParams.set('timeMax', timeMax);
+      url.searchParams.set('singleEvents', 'true');
+      url.searchParams.set('orderBy', 'startTime');
+      url.searchParams.set('maxResults', '250');
+      if(pageToken) url.searchParams.set('pageToken', pageToken);
+      const res = await fetch(url, { headers:{ Authorization: 'Bearer ' + token } });
+      if(!res.ok){
+        const errBody = await res.json().catch(()=>({}));
+        throw new Error((errBody.error && errBody.error.message) || ('Calendar API error ' + res.status));
+      }
+      const data = await res.json();
+      items = items.concat(data.items || []);
+      pageToken = data.nextPageToken || '';
+    } while(pageToken);
+
+    mergeGoogleEvents(items);
+    DB.meta.lastSync = nowISO();
+    saveDB();
+    render();
+  }catch(e){
+    toast('Sync failed: ' + (e.message || e));
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = 'Sync Calendar'; }
+  }
+}
+function guessEventTypeFromTitle(title, attendeeCount){
+  const t = (title||'').toLowerCase();
+  if(attendeeCount===0) return 'Internal';
+  if(t.includes('demo')) return 'Demo';
+  if(t.includes('discovery')) return 'Discovery';
+  if(t.includes('presale')) return 'Presales';
+  if(t.includes('follow')) return 'Follow-up';
+  return 'Other';
+}
+function mergeGoogleEvents(items){
+  let added=0, updated=0, skipped=0;
+  const selfEmail = (DB.meta.googleEmail || '').toLowerCase();
+
+  items.forEach(ev=>{
+    if(!ev.start){ skipped++; return; }
+    const startStr = ev.start.dateTime || ev.start.date;
+    const date = (startStr||'').slice(0,10);
+    const time = ev.start.dateTime ? new Date(ev.start.dateTime).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '';
+    const attendees = (ev.attendees||[]).filter(a => !a.self && (a.email||'').toLowerCase()!==selfEmail);
+    const primary = attendees[0] || null;
+    const isCancelled = ev.status === 'cancelled';
+    const title = ev.summary || '(No title)';
+    const meetingLink = ev.hangoutLink || ((ev.conferenceData && ev.conferenceData.entryPoints || []).find(p=>p.entryPointType==='video')||{}).uri || '';
+
+    const existing = DB.events.find(e => e.googleEventId === ev.id);
+    if(existing){
+      const changed = existing.date!==date || existing.time!==time || existing.title!==title;
+      existing.title = title;
+      existing.date = date;
+      existing.time = time;
+      existing.meetingLink = meetingLink;
+      existing.eventUrl = ev.htmlLink || existing.eventUrl;
+      if(primary){ existing.attendeeName = primary.displayName || primary.email.split('@')[0]; existing.attendeeEmail = primary.email; }
+
+      if(existing.dealId){
+        // Already converted to a deal — keep its list status intact and reflect
+        // calendar changes on the deal's timeline instead of relabeling the event.
+        const deal = DB.deals.find(d=>d.id===existing.dealId);
+        if(isCancelled){
+          if(deal && !existing._cancelNoted){ addTimeline(deal, 'Source meeting cancelled', title); existing._cancelNoted = true; }
+        } else {
+          existing._cancelNoted = false;
+          if(changed && deal){
+            deal.meetingDate = date; deal.meetingTime = time;
+            addTimeline(deal, 'Meeting rescheduled', `New time: ${fmtDate(date)}${time? ' '+time:''}`);
+          }
+        }
+      } else if(isCancelled){
+        existing.status = 'Cancelled';
+      } else if(existing.status==='Cancelled'){
+        existing.status = 'New';
+      } else if(changed && existing.status==='New'){
+        existing.status = 'Updated';
+      }
+      updated++;
+      return;
+    }
+
+    // fallback dedupe against anything entered manually before this event had a Google ID
+    const fallbackKey = (title+'|'+date+'|'+(primary?primary.email:'')).toLowerCase();
+    if(DB.events.some(e => !e.googleEventId && eventKey(e)===fallbackKey)){ skipped++; return; }
+
+    DB.events.push({
+      id: uid('evt'),
+      googleEventId: ev.id,
+      title, date, time,
+      attendeeName: primary ? (primary.displayName || primary.email.split('@')[0]) : '',
+      attendeeEmail: primary ? primary.email : '',
+      type: guessEventTypeFromTitle(title, attendees.length),
+      status: isCancelled ? 'Cancelled' : 'New',
+      dealId: null,
+      meetingLink,
+      eventUrl: ev.htmlLink || '',
+      createdAt: nowISO()
+    });
+    added++;
+  });
+
+  toast(`Synced: ${added} new, ${updated} updated${skipped? ', '+skipped+' skipped':''}`);
+}
+
+/* ============================================================
+   DEALS (Stage 2)
+============================================================ */
+function renderDeals(){
+  let deals = DB.deals.slice().sort((a,b)=> (b.lastUpdated||'').localeCompare(a.lastUpdated||''));
+  if(searchTerm){
+    deals = deals.filter(d => (d.clientName+' '+d.contactName+' '+d.contactEmail+' '+d.id).toLowerCase().includes(searchTerm));
+  }
+  const owners = ownersInUse();
+
+  const rows = deals.map(d=>{
+    const actionReq = (!d.owner || !d.status || !d.nextAction || !d.followUpDate) && d.status!=='Won' && d.status!=='Lost' && d.status!=='Parked';
+    return `<tr class="clickable status-strip ${statusStripClass(followUpStatus(d))}" onclick="openDeal('${d.id}')">
+      <td><div class="client-name">${escapeHtml(d.clientName)}</div><div class="cell-muted" style="font-size:11.5px;">${escapeHtml(d.contactName||'')}</div></td>
+      <td>${dealBadge(d.status)}${actionReq? ' <span class=\"badge badge-action\">Action Required</span>':''}</td>
+      <td>${d.lastInteraction? fmtDate(d.lastInteraction): '<span class="cell-muted">—</span>'}</td>
+      <td>${d.nextAction || '<span class="cell-muted">—</span>'}</td>
+      <td>${d.followUpDate? fmtDate(d.followUpDate) : '<span class="cell-muted">—</span>'}</td>
+      <td>${escapeHtml(d.owner||'—')}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <h1>Deals</h1>
+    <p class="page-sub">${deals.length} deal${deals.length===1?'':'s'} ${owners.length? '· Owners: '+owners.join(', '):''}</p>
+    <div class="panel">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Client</th><th>Stage</th><th>Last Interaction</th><th>Next Action</th><th>Follow-up</th><th>Owner</th></tr></thead>
+          <tbody>
+            ${deals.length? rows : `<tr><td colspan="6">${emptyState('No deals yet','Log a calendar conversation and add it to deals to get started.')}</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function openDeal(id){
+  activeDealId = id;
+  const d = DB.deals.find(x=>x.id===id);
+  if(!d) return;
+  document.getElementById('dealModalTitle').textContent = d.clientName || 'Deal';
+  document.getElementById('dealModalSub').textContent = `${d.dealType||''} · Created ${fmtDate(d.createdDate)} · Deal ID ${d.id}`;
+  document.getElementById('dealModalBody').innerHTML = dealFormHtml(d);
+  openModal('modalDeal');
+  refreshOwnersDatalist();
+}
+function dealFormHtml(d){
+  const missing = [];
+  if(!d.owner) missing.push('Owner');
+  if(!d.nextAction) missing.push('Next Action');
+  if(!d.followUpDate) missing.push('Follow-up Date');
+  const showBanner = missing.length && d.status!=='Won' && d.status!=='Lost' && d.status!=='Parked';
+
+  return `
+    ${showBanner ? `<div class="banner banner-warn">⚠ Missing ${missing.join(', ')} — this deal is flagged as Action Required until it's set.</div>` : ''}
+
+    <div class="section-label">Identity</div>
+    <div class="form-grid">
+      <div class="field"><label>Client name</label><input id="f_clientName" value="${escapeHtml(d.clientName)}"></div>
+      <div class="field"><label>Contact name</label><input id="f_contactName" value="${escapeHtml(d.contactName)}"></div>
+      <div class="field"><label>Contact email</label><input id="f_contactEmail" value="${escapeHtml(d.contactEmail)}"></div>
+      <div class="field"><label>Deal type</label>
+        <select id="f_dealType">${DEAL_TYPES.map(t=>`<option ${d.dealType===t?'selected':''}>${t}</option>`).join('')}</select>
+      </div>
+    </div>
+
+    <div class="section-label">Pipeline</div>
+    <div class="form-grid">
+      <div class="field"><label>Status</label>
+        <select id="f_status">${STATUSES.map(s=>`<option ${d.status===s?'selected':''}>${s}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>Demo outcome</label>
+        <select id="f_demoOutcome">${DEMO_OUTCOMES.map(s=>`<option value="${s}" ${d.demoOutcome===s?'selected':''}>${s||'—'}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>Owner</label><input id="f_owner" list="ownersList" value="${escapeHtml(d.owner)}"></div>
+      <div class="field"><label>Meeting date</label><input id="f_meetingDate" type="date" value="${d.meetingDate||''}"></div>
+    </div>
+
+    <div class="section-label">Next step</div>
+    <div class="form-grid">
+      <div class="field"><label>Next action</label>
+        <select id="f_nextAction">${NEXT_ACTIONS.map(s=>`<option value="${s}" ${d.nextAction===s?'selected':''}>${s||'—'}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>Follow-up date</label><input id="f_followUpDate" type="date" value="${d.followUpDate||''}"></div>
+    </div>
+
+    <div class="section-label">Communication</div>
+    <div class="form-grid">
+      <div class="field"><label>Last email sent</label><input value="${d.lastEmailSent||'No'} ${d.lastEmailDate? '· '+fmtDate(d.lastEmailDate):''}" disabled></div>
+      <div class="field"><label>Response status</label>
+        <select id="f_responseStatus">${RESPONSE_STATUSES.map(s=>`<option value="${s}" ${d.responseStatus===s?'selected':''}>${s||'—'}</option>`).join('')}</select>
+      </div>
+    </div>
+
+    <div class="section-label">Notes</div>
+    <div class="field"><textarea id="f_notes" rows="3">${escapeHtml(d.notes)}</textarea></div>
+
+    <div class="section-label">Timeline</div>
+    ${renderTimeline(d)}
+  `;
+}
+function renderTimeline(d){
+  const items = (d.timeline||[]).slice().reverse();
+  if(items.length===0) return `<div class="cell-muted" style="font-size:12.5px;">No activity yet.</div>`;
+  return `<ul class="timeline">${items.map((t,i)=>`
+    <li>
+      <div class="tl-dot"></div>${i<items.length-1?'<div class="tl-line"></div>':''}
+      <div class="tl-body">
+        <div class="tl-title">${escapeHtml(t.type)}</div>
+        <div class="tl-meta">${fmtDateTime(t.timestamp)} · ${escapeHtml(t.user)}</div>
+        ${t.notes? `<div class="tl-notes">${escapeHtml(t.notes)}</div>`:''}
+      </div>
+    </li>`).join('')}</ul>`;
+}
+function saveDealForm(){
+  const d = DB.deals.find(x=>x.id===activeDealId);
+  if(!d) return;
+  const prevStatus = d.status;
+  d.clientName = document.getElementById('f_clientName').value.trim() || d.clientName;
+  d.contactName = document.getElementById('f_contactName').value.trim();
+  d.contactEmail = document.getElementById('f_contactEmail').value.trim();
+  d.dealType = document.getElementById('f_dealType').value;
+  d.status = document.getElementById('f_status').value;
+  d.demoOutcome = document.getElementById('f_demoOutcome').value;
+  d.owner = document.getElementById('f_owner').value.trim();
+  d.meetingDate = document.getElementById('f_meetingDate').value;
+  d.nextAction = document.getElementById('f_nextAction').value;
+  d.followUpDate = document.getElementById('f_followUpDate').value;
+  d.responseStatus = document.getElementById('f_responseStatus').value;
+  d.notes = document.getElementById('f_notes').value;
+  d.lastUpdated = nowISO();
+  if(prevStatus !== d.status){
+    addTimeline(d, `Status changed to ${d.status}`, '');
+  } else {
+    addTimeline(d, 'Deal updated', '');
+  }
+  saveDB();
+  closeModal('modalDeal');
+  render();
+  toast('Deal saved');
+}
+function deleteDeal(){
+  if(!activeDealId) return;
+  if(!confirm('Delete this deal? Its calendar conversation will become available again.')) return;
+  const d = DB.deals.find(x=>x.id===activeDealId);
+  if(d){
+    const ev = DB.events.find(e=>e.dealId===d.id);
+    if(ev){ ev.status='New'; ev.dealId=null; }
+    DB.deals = DB.deals.filter(x=>x.id!==activeDealId);
+  }
+  saveDB();
+  closeModal('modalDeal');
+  render();
+  toast('Deal deleted');
+}
+
+/* ============================================================
+   FOLLOW-UP TRACKER (Stage 3)
+============================================================ */
+function renderFollowups(){
+  let deals = DB.deals.slice();
+
+  if(searchTerm){
+    deals = deals.filter(d => (d.clientName+' '+d.contactName+' '+d.contactEmail).toLowerCase().includes(searchTerm));
+  }
+
+  const tabs = [
+    {id:'active', label:'All Active'},
+    {id:'due', label:'Due Today'},
+    {id:'overdue', label:'Overdue'},
+    {id:'waiting', label:'Awaiting Client'},
+    {id:'parked', label:'Parked'},
+    {id:'won', label:'Won'},
+    {id:'lost', label:'Lost'}
+  ];
+  deals = deals.filter(d=>{
+    const s = followUpStatus(d);
+    if(followupViewFilter==='active') return d.status!=='Won' && d.status!=='Lost';
+    if(followupViewFilter==='due') return s==='Due Today';
+    if(followupViewFilter==='overdue') return s==='Overdue';
+    if(followupViewFilter==='waiting') return s==='Awaiting Client';
+    if(followupViewFilter==='parked') return d.status==='Parked';
+    if(followupViewFilter==='won') return d.status==='Won';
+    if(followupViewFilter==='lost') return d.status==='Lost';
+    return true;
+  });
+  deals.sort((a,b)=>{
+    const order = {'Overdue':0,'Due Today':1,'Action Required':2,'Awaiting Client':3,'Not Due':4,'Parked':5,'Completed':6};
+    return (order[followUpStatus(a)]??9) - (order[followUpStatus(b)]??9);
+  });
+
+  const rows = deals.map(d=>{
+    const s = followUpStatus(d);
+    const checked = selectedDealIds.has(d.id)?'checked':'';
+    return `<tr class="status-strip ${statusStripClass(s)}">
+      <td class="checkbox-col"><input type="checkbox" class="checkbox" ${checked} onchange="toggleDealSelect('${d.id}', this.checked)"></td>
+      <td class="clickable" onclick="openDeal('${d.id}')"><div class="client-name">${escapeHtml(d.clientName)}</div></td>
+      <td>${escapeHtml(d.status)}</td>
+      <td>${d.lastInteraction? fmtDate(d.lastInteraction):'—'}</td>
+      <td>${d.lastEmailSent==='Yes' ? 'Yes · '+fmtDate(d.lastEmailDate) : 'No'}</td>
+      <td>${d.nextAction || '<span class="cell-muted">—</span>'}</td>
+      <td>${d.followUpDate? fmtDate(d.followUpDate):'<span class="cell-muted">—</span>'}</td>
+      <td><span class="badge ${statusBadgeClass(s)}">${escapeHtml(s)}</span></td>
+      <td>${escapeHtml(d.owner||'—')}</td>
+      <td><button class="btn btn-sm btn-primary" onclick="openEmailCompose('${d.id}')" ${d.status==='Won'||d.status==='Lost'?'disabled':''}>Email</button></td>
+    </tr>`;
+  }).join('');
+
+  const selCount = selectedDealIds.size;
+
+  return `
+    <h1>Follow-up Tracker</h1>
+    <p class="page-sub">Filter, select, and action the deals that need attention.</p>
+    <div class="panel">
+      <div class="filter-bar">
+        ${owners_filter_html()}
+        <div class="view-tabs">
+          ${tabs.map(t=>`<div class="view-tab ${followupViewFilter===t.id?'active':''}" onclick="setFollowupFilter('${t.id}')">${t.label}</div>`).join('')}
+        </div>
+      </div>
+      <div class="bulkbar ${selCount? 'show':''}">
+        <span>${selCount} selected</span>
+        <select id="bulkAction">
+          <option value="">Choose action…</option>
+          <option value="send_email">Send Follow-up Email</option>
+          <option value="send_proposal">Send Proposal</option>
+          <option value="schedule">Schedule Follow-up</option>
+          <option value="awaiting">Mark Awaiting Client</option>
+          <option value="parked">Mark Parked</option>
+          <option value="won">Mark Won</option>
+          <option value="lost">Mark Lost</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="runBulkAction()">Apply</button>
+        <button class="btn btn-sm btn-ghost" onclick="clearDealSelection()">Clear selection</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th class="checkbox-col"></th><th>Client</th><th>Stage</th><th>Last Interaction</th><th>Last Email</th><th>Next Action</th><th>Follow-up</th><th>Status</th><th>Owner</th><th></th>
+          </tr></thead>
+          <tbody>${deals.length? rows : `<tr><td colspan="10">${emptyState('Nothing in this view','Try a different filter, or add some deals first.')}</td></tr>`}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+function owners_filter_html(){
+  const owners = ownersInUse();
+  if(!owners.length) return '';
+  return `<select onchange="filterByOwner(this.value)"><option value="">All owners</option>${owners.map(o=>`<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('')}</select>`;
+}
+function filterByOwner(owner){
+  searchTerm = owner ? owner.toLowerCase() : '';
+  render();
+}
+function setFollowupFilter(id){ followupViewFilter=id; render(); }
+function toggleDealSelect(id, checked){
+  if(checked) selectedDealIds.add(id); else selectedDealIds.delete(id);
+  render();
+}
+function clearDealSelection(){ selectedDealIds.clear(); render(); }
+
+function runBulkAction(){
+  const action = document.getElementById('bulkAction').value;
+  if(!action){ toast('Choose an action first'); return; }
+  const ids = Array.from(selectedDealIds);
+  if(ids.length===0) return;
+
+  if(action==='send_email'){
+    // sequential single-deal compose flow, starting with the first selected deal
+    window._bulkEmailQueue = ids.slice(1);
+    openEmailCompose(ids[0], true);
+    return;
+  }
+  if(action==='send_proposal'){
+    window._bulkEmailQueue = ids.slice(1);
+    openEmailCompose(ids[0], true, 'proposal_followup');
+    return;
+  }
+  if(action==='schedule'){
+    document.getElementById('bulkModalTitle').textContent = 'Schedule follow-up';
+    document.getElementById('bulkModalSub').textContent = `Applies to ${ids.length} selected deal${ids.length===1?'':'s'}`;
+    document.getElementById('bulkModalBody').innerHTML = `
+      <div class="field"><label>Follow-up date</label><input type="date" id="bulkDate" value="${todayISO()}"></div>
+      <div class="field" style="margin-top:10px;"><label>Next action</label>
+        <select id="bulkNextAction">${NEXT_ACTIONS.filter(a=>a).map(a=>`<option>${a}</option>`).join('')}</select>
+      </div>`;
+    window._bulkPending = {type:'schedule', ids};
+    openModal('modalBulk');
+    return;
+  }
+  const confirmMap = {
+    awaiting: {status:null, responseStatus:'Awaiting Response', label:'Mark Awaiting Client'},
+    parked: {status:'Parked', label:'Mark Parked'},
+    won: {status:'Won', label:'Mark Won'},
+    lost: {status:'Lost', label:'Mark Lost'}
+  };
+  const cfg = confirmMap[action];
+  if(!confirm(`${cfg.label} for ${ids.length} deal${ids.length===1?'':'s'}? This will overwrite their current status.`)) return;
+  ids.forEach(id=>{
+    const d = DB.deals.find(x=>x.id===id);
+    if(!d) return;
+    if(cfg.status) d.status = cfg.status;
+    if(cfg.responseStatus) d.responseStatus = cfg.responseStatus;
+    d.lastUpdated = nowISO();
+    addTimeline(d, cfg.label, '');
+  });
+  saveDB();
+  selectedDealIds.clear();
+  render();
+  toast(`${cfg.label} applied to ${ids.length} deal${ids.length===1?'':'s'}`);
+}
+function confirmBulkAction(){
+  const pending = window._bulkPending;
+  if(!pending) return closeModal('modalBulk');
+  if(pending.type==='schedule'){
+    const date = document.getElementById('bulkDate').value;
+    const nextAction = document.getElementById('bulkNextAction').value;
+    pending.ids.forEach(id=>{
+      const d = DB.deals.find(x=>x.id===id);
+      if(!d) return;
+      d.followUpDate = date;
+      d.nextAction = nextAction;
+      d.lastUpdated = nowISO();
+      addTimeline(d, 'Follow-up scheduled', `${nextAction} on ${fmtDate(date)}`);
+    });
+    saveDB();
+    selectedDealIds.clear();
+    closeModal('modalBulk');
+    render();
+    toast(`Scheduled follow-up for ${pending.ids.length} deal${pending.ids.length===1?'':'s'}`);
+  }
+  window._bulkPending = null;
+}
+
+/* ---- email compose ---- */
+function openEmailCompose(dealId, fromBulk, forceTemplate){
+  const d = DB.deals.find(x=>x.id===dealId);
+  if(!d) return;
+  if(!d.contactEmail){
+    toast('This deal has no contact email — add one before sending');
+    return;
+  }
+  activeDealId = dealId;
+  document.getElementById('emailModalTitle').textContent = `Email — ${d.clientName}`;
+  document.getElementById('emailModalSub').textContent = `To ${d.contactEmail}${fromBulk && window._bulkEmailQueue && window._bulkEmailQueue.length ? ` · ${window._bulkEmailQueue.length} more queued after this` : ''}`;
+
+  const defaultTemplate = forceTemplate || guessTemplate(d);
+  document.getElementById('emailModalBody').innerHTML = `
+    <div class="form-grid full">
+      <div class="field">
+        <label>Template</label>
+        <select id="em_template" onchange="applyEmailTemplate()">
+          ${Object.entries(EMAIL_TEMPLATES).map(([k,t])=>`<option value="${k}" ${k===defaultTemplate?'selected':''}>${t.label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Subject</label><input id="em_subject"></div>
+      <div class="field"><label>Body</label><textarea id="em_body" rows="9"></textarea></div>
+      <div class="field"><label>Next follow-up date</label><input type="date" id="em_nextDate" value="${suggestNextDate(defaultTemplate)}"></div>
+    </div>
+  `;
+  window._emailContext = { dealId, fromBulk: !!fromBulk };
+  applyEmailTemplate();
+  openModal('modalEmail');
+}
+function guessTemplate(d){
+  if(d.status==='Proposal') return 'proposal_followup';
+  if(d.status==='Presales') return 'presales_followup';
+  if(d.lastEmailSent==='Yes' && d.lastEmailDate){
+    const diff = Math.round((new Date()-new Date(d.lastEmailDate))/86400000);
+    if(diff>=7) return 'no_response_7';
+    if(diff>=3) return 'no_response_3';
+  }
+  return 'post_demo';
+}
+function suggestNextDate(templateKey){
+  const days = {post_demo:2, no_response_3:4, no_response_7:0, proposal_followup:3, presales_followup:3, close_loop:0}[templateKey] ?? 3;
+  const d = new Date(); d.setDate(d.getDate()+days);
+  return d.toISOString().slice(0,10);
+}
+function applyEmailTemplate(){
+  const d = DB.deals.find(x=>x.id===window._emailContext.dealId);
+  const key = document.getElementById('em_template').value;
+  const tpl = EMAIL_TEMPLATES[key];
+  document.getElementById('em_subject').value = tpl.subject(d);
+  document.getElementById('em_body').value = tpl.body(d);
+  document.getElementById('em_nextDate').value = suggestNextDate(key);
+}
+function sendEmailAction(){
+  const ctx = window._emailContext;
+  const d = DB.deals.find(x=>x.id===ctx.dealId);
+  if(!d) return;
+  const subject = document.getElementById('em_subject').value;
+  const body = document.getElementById('em_body').value;
+  const nextDate = document.getElementById('em_nextDate').value;
+  const templateLabel = EMAIL_TEMPLATES[document.getElementById('em_template').value].label;
+
+  const mailto = `mailto:${encodeURIComponent(d.contactEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.open(mailto, '_blank');
+
+  d.lastEmailSent = 'Yes';
+  d.lastEmailDate = nowISO();
+  d.responseStatus = 'Awaiting Response';
+  d.lastInteraction = nowISO();
+  d.lastInteractionType = 'Email';
+  d.followUpDate = nextDate || d.followUpDate;
+  d.nextAction = 'Wait for Client';
+  d.lastUpdated = nowISO();
+  addTimeline(d, `Email sent — ${templateLabel}`, subject);
+  saveDB();
+  closeModal('modalEmail');
+  toast(`Email logged for ${d.clientName}`);
+
+  if(ctx.fromBulk && window._bulkEmailQueue && window._bulkEmailQueue.length){
+    const nextId = window._bulkEmailQueue.shift();
+    setTimeout(()=>openEmailCompose(nextId, true), 350);
+  } else {
+    selectedDealIds.clear();
+    render();
+  }
+}
+
+/* ============================================================
+   EXPORT / IMPORT (data portability for team sharing)
+============================================================ */
+function exportData(){
+  const blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `geoiq-followups-${todayISO()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Snapshot downloaded — share this file with the team');
+}
+function importData(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const incoming = JSON.parse(reader.result);
+      if(!incoming.events || !incoming.deals){ toast("That file doesn't look like a valid snapshot"); return; }
+      if(!confirm('Import this snapshot? It will replace all data currently in this browser.')) return;
+      DB = incoming;
+      DB.meta = DB.meta || {};
+      saveDB();
+      selectedDealIds.clear(); selectedEventIds.clear();
+      setView('dashboard');
+      toast('Snapshot imported');
+    }catch(e){
+      toast('Could not read that file');
+    }
+  };
+  reader.readAsText(file);
+  evt.target.value = '';
+}
+
+/* ============================================================
+   INIT
+============================================================ */
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){
+    ['modalImportEvents','modalAddToDeal','modalDeal','modalEmail','modalBulk','modalGoogleSettings'].forEach(closeModal);
+  }
+});
+
+// A shared "connect link" (?view=calendar) opens straight to the Calendar tab
+// so a teammate can land on the Connect button with one click, rather than
+// hunting through the nav. Browsers block auth popups that aren't triggered
+// by a direct click, so we can't fully auto-open Google sign-in on load —
+// this gets a person as close to it as possible.
+(function initFromUrl(){
+  const params = new URLSearchParams(location.search);
+  const view = params.get('view');
+  if(view && NAV_ITEMS.some(n=>n.id===view)) currentView = view;
+})();
+
+render();
+</script>
+</body>
+</html>
